@@ -1,0 +1,46 @@
+Connor Kenny	304437322
+CS 33	Pexex Lab
+answers.txt
+
+1) Explain why the instructions in the third trace did not produce the correct mathematical result. Which instructions caused the problem, exactly?
+
+The third trace returns 1, which is definitely not the correct answer. Strangely, when the function returns the eax register holds 0x4, which is still not the correct answer, but is not even the number it returns. This is because emacs returns lisp objects instead of normal integers. This problem occurs because the machine cannot hold the result of the two biggest numbers that it can hold multiplied together. Specifically, it doesn’t work because it is physically unable to hold the correct result. No matter what the function tries to do at the assembly level, it cannot hold a number that large. It produces the wrong result because it fails to multiply the correct values. Throughout the entire trace, many things happen that are not directly related to multiplying 2 numbers, but at the very end it runs a multiplication instruction. This would be the multiplication that we are looking for, but it picks the wrong values. It multiplies 1 by 4, which is definitely not the enormous value we wanted. The reason it is not the huge number is because we divide eax by ecx when it holds the correct value first and then multiply by the esi. When you look at the source code, however, this all seems to fall into place. When emacs’ multiplication overflows, it converts to unsigned int, multiplies and does a bitwise and with INTMASK (0x3fffffff). When you do the multiplication with the two ints we chose for trace three, this process turns out to be 1. All of the multiplying and dividing that we saw in the assembly is going through this function is actually going through the switch statement, for loop and the specific multiply case. Overall, the function avoids overflowing by doing seemingly random instructions that are actually well defined in the source code, but do not help us reach our goal.
+
+
+2) If you just count instructions, which trace is the most efficient and why?
+
+	1:103 lines	2:107 lines	3:101 lines
+
+First of all, comparing the three traces does not make much sense because trace3 has different arguments than the first two. When comparing all 3, trace3 is the most efficient, but it actually returns the wrong answer. It gets to skip some steps that trace1 had to go through. When comparing the first two traces, trace1 is more efficient because it is x86 vs x86-64. It does not have as much memory to deal with and uses the stack more. This allows it to use less instructions and be more efficient in general. Overall, the x86 produces less instructions so is more efficient.
+
+
+3) Similarly, which is the least efficient and why?
+
+In both comparisons, trace2 is the least efficient. This happens because there are more registers to be used in the x86-64. It can hold more, but is less efficient than its x86 counterpart. This allows the x86 to use less instructions than the x86-64 because the x86-64 has to push and pop the registers along with other time consuming things. This makes trace2 using the x86-64 slower than trace1 using the x86. Overall, in terms of instruction count, trace3 using the x86-64 is the least efficient because it has to deal with more memory.
+
+
+4) Where did the number 536870911 come from? Explain in terms of the Emacs source code.
+
+This number is 2^29-1. This is the maximum number for Emacs because it is a dynamically-typed language. It needs to have type identifiers or “descriptors” to differentiate the types. It uses the last 2 bits as a tag for the Lisp interpreter. A normal signed int that we are used to can hold 2^31-1 as its biggest number (in x86), which actually uses the 2 extra bits that are used for the tag to hold data instead.
+
+
+5) The two Emacs executables were compiled with GCC's -O2 option. Suppose they had also been compiled with -ftrapv. Explain any problems the traces would run into, or if there would not be a problem explain why not.
+
+If they were compiled with -ftrapv (and it worked correctly, unlike in the testovf.c test), it would cause the program to trap for trace3. Other than that, it would behave the same as if you left it out. This would make it so that emacs would not be able to use their own version of overflow handling, which would make it more clear to the user, but would also crash their program.
+
+
+6) Similarly, discuss whether and how -fwrapv would have caused problems.
+
+If they were compiled with -fwrapv, again only the third trace could even have a problem. The first two held numbers that were well in their range and -fwrapv could not cause any problems. For the third trace, if it were to run with -fwrapv, this would allow the function to wrap around, again giving us the wrong answer. The only way that the third trace could work in general would be to increase the number of bits used to represent a number. Overall, adding -fwrapv should not cause any more problems than there already were with the emacs compilation.
+
+
+7) Suppose we assume -fwrapv is used. Suggest changes to how Emacs does integer multiplication that should help improve its performance. Focus on just the integer multiplication; don't alter the machinery Emacs uses to decide which flavor of multiplication to do.
+
+To improve performance, it would be beneficial to not go through 100+ instructions just to multiply 2 numbers. In order to be the most efficient, it could just store the two numbers into registers, use a imul instruction, and make sure the answer is in the eax register. This could have been done in fewer instructions than were used in these traces, but wouldn’t be as universal or check for overflow. Right now, emacs uses a very complicated and convoluted process that I think could be easily fixed to be efficient, although this is probably not the best for the emacs program as a whole. 
+
+If we want to keep the structure that emacs uses now, we can do this another way. By allowing for -fwrapv, it would not have to repeatedly check for overflow as well as not treating it like a special case. It would just do the regular multiplication by using “accum *= next” and be done with it. By not using -fwrapv, emacs creates its own way to deal with the overflow, which did not make sense until we looked at the source code.
+
+
+8) How significant are the efficiency differences discussed above, in the context of Emacs execution?
+
+The efficiency differences discussed above are not very significant because we counted instruction count. This is important, but when you are comparing 32 bit and 64 bit registers, there is a more important matter. The fact that the x86-64 doesn’t have to go to the stack as often (it uses more registers) means it can be faster when accessing memory despite having to use more instructions than its x86 counterpart. Both of the executions were fast and most likely optimized appropriately, so the differences between the two are probably too small to account for anything. The biggest problem with emacs was that it took roughly 100 lines to multiply two numbers, which we know can basically be done with 1 imul instruction. It was very inefficient overall, but depending on how we ran the function, it was only slightly more or less efficient. Emacs is used to run many complicated mathematical functions so it is inefficient when only multiplying two numbers. In the long run, either technique will be very similar because both of them are relatively slow.

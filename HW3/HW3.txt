@@ -1,0 +1,38 @@
+Connor Kenny
+CS 33
+HW 3
+
+3.64
+
+A.
+The three registers and their values are: 
+8(%ebp) - result, 12(%ebp) - s1.a, 16(%ebp) - s1.p
+
+There appear to be three because the argument is a struct with multiple parts that need to be passed individually, while staying in the correct order.
+
+B. 
+Each of the 5 fields are used as follows:
+(%esp) - s2
+4(%esp) - s1.a
+8(%esp) - s1.p
+12(%esp) - s2.sum
+16(%esp) - s2.diff
+
+C.
+The general strategy for passing structures as arguments is to push the struct as regular arguments. This way you push the structs address and each of its components in order of decsending address.
+
+D. 
+In order to return a structure, you have to maintain the correct ordering of the individual components. You adjust the components as the function says and then return them with the %eax register holding the structs address with the components at retaddr + 4 and so on.
+
+
+
+3.67
+
+A. The offsets of each of the fields are:
+e1.p: 0e1.y: 4
+e2.x: 0
+e2.next: 4
+B. The structure would require 8 bytes.
+C. 
+void proc (union ele *up){up->next->x = *(up->next->p) - up->y; 
+}

@@ -1,0 +1,131 @@
+Connor Kenny 304437322
+CS33 openmplab.txt Log
+
+Downloaded the file from CCLE and then used SCP to get it on the Seasnet Server. Un-tarballed the file and now it is ready to go.
+
+Downloaded Eric Kim's python code to test the average time for my runs.
+
+Read over the slides provided on Piazza about OpenMP to learn what it really does.
+
+Ran both the seq and omp versions just to start and found that the original function usually completes in about .6 seconds.
+This means that I am looking to get to at least a time of around .17 seconds to accomplish the 3.5x speed goal of the lab.
+
+Compiled seq with GPROF to see which functions are taking the most time. Found that func1 and func2 are by far the biggest hogs.
+
+Will start adding the OpenMP directives to the code to see if it can speed up that dramatically.
+
+Tried to put a #pragma omp parallel for above the first for loop in func1 and got a "glibc detected" message...
+
+Realizing that every loop can't be easily sped up by adding parallel directives.
+
+Getting the incorrect output because the data isn't being shared/not shared correctly by the threads.. need to add shared/private.
+
+Directives that I have tried up until this point: #pragma omp parallel (for) (shared()) (private())
+
+Can only get the 'for' option to speed up my code. Going to read up on Piazza and the slides what shared/private does
+
+Going through each loop in each function to see how each one responds to adding #pragma omp parallel for
+
+None of the loops were improved by adding this directive... 
+
+Added this directive and achieved a time of .31 seconds for FUNC TIME: #pragma omp parallel for private(index_X, index_Y, i, j)
+- used on the second for loop in func1
+
+Started changing the scheduling of the for loops using schedule(static/dynamic/guided) to increase speed.
+Got the time down to .165 seconds by using dynamic in func0 and guided in the first loop of func1.
+
+This means that I have completed the main task of achieving a 3.5x speedup. At this point I am at 3.6x.
+
+"
+[connork@lnxsrv02 ~/Desktop/openmplab]$ python esttime.py ./omp 10
+Running './omp' 10 times...
+  [i=1/10]: FUNC_TIME: 0.627042
+  [i=2/10]: FUNC_TIME: 0.202252
+  [i=3/10]: FUNC_TIME: 0.166051
+  [i=4/10]: FUNC_TIME: 0.163538
+  [i=5/10]: FUNC_TIME: 0.16527
+  [i=6/10]: FUNC_TIME: 0.163073
+  [i=7/10]: FUNC_TIME: 0.166064
+  [i=8/10]: FUNC_TIME: 0.210844
+  [i=9/10]: FUNC_TIME: 0.164038
+  [i=10/10]: FUNC_TIME: 0.164636
+==== Statistics (in seconds) ====
+Mean: 0.2192808 Std: 0.136936977996 Median: 0.1656605
+  (Min: 0.163073 Max: 0.627042)
+min(mean, median) = 0.1656605
+Done.
+[connork@lnxsrv02 ~/Desktop/openmplab]$ python esttime.py ./seq 10
+Running './seq' 10 times...
+  [i=1/10]: FUNC_TIME: 0.599993
+  [i=2/10]: FUNC_TIME: 0.809297
+  [i=3/10]: FUNC_TIME: 0.600132
+  [i=4/10]: FUNC_TIME: 0.600283
+  [i=5/10]: FUNC_TIME: 0.599466
+  [i=6/10]: FUNC_TIME: 0.600603
+  [i=7/10]: FUNC_TIME: 0.599704
+  [i=8/10]: FUNC_TIME: 0.599156
+  [i=9/10]: FUNC_TIME: 0.600042
+  [i=10/10]: FUNC_TIME: 0.600266
+==== Statistics (in seconds) ====
+Mean: 0.6208942 Std: 0.0628022110053 Median: 0.600087
+  (Min: 0.599156 Max: 0.809297)
+min(mean, median) = 0.600087
+"
+
+After going through every loop and adding the best schedule for parallelism I got the speedup to be roughly 4.85x.
+Depending on what the loop iterated over, a different schedule would be optimal.
+
+I got a time of .122 seconds for FUNC TIME as my best time so far.
+
+After logging on and fiddling with the scheduling (now including 'runtime' option), as well as adding reduction for probability.
+Done by adding a new variable that, after the loop has its value put in probability[i] [func1]
+
+Here is the print out from my last test, this time on server 5 because the others seemed to be a bit slow:
+
+[connork@lnxsrv05 ~/Desktop/openmplab]$ python esttime.py ./seq 10
+Running './seq' 10 times...
+  [i=1/10]: FUNC_TIME: 0.601304
+  [i=2/10]: FUNC_TIME: 0.601391
+  [i=3/10]: FUNC_TIME: 0.601324
+  [i=4/10]: FUNC_TIME: 0.601054
+  [i=5/10]: FUNC_TIME: 0.600745
+  [i=6/10]: FUNC_TIME: 0.60141
+  [i=7/10]: FUNC_TIME: 0.601415
+  [i=8/10]: FUNC_TIME: 0.60136
+  [i=9/10]: FUNC_TIME: 0.602634
+  [i=10/10]: FUNC_TIME: 0.601046
+==== Statistics (in seconds) ====
+Mean: 0.6013683 Std: 0.000469442445887 Median: 0.601342
+  (Min: 0.600745 Max: 0.602634)
+min(mean, median) = 0.601342
+Done.
+[connork@lnxsrv05 ~/Desktop/openmplab]$ python esttime.py ./omp 10
+Running './omp' 10 times...
+  [i=1/10]: FUNC_TIME: 0.088117
+  [i=2/10]: FUNC_TIME: 0.097131
+  [i=3/10]: FUNC_TIME: 0.09174
+  [i=4/10]: FUNC_TIME: 0.093021
+  [i=5/10]: FUNC_TIME: 0.097498
+  [i=6/10]: FUNC_TIME: 0.094488
+  [i=7/10]: FUNC_TIME: 0.091905
+  [i=8/10]: FUNC_TIME: 0.097101
+  [i=9/10]: FUNC_TIME: 0.090674
+  [i=10/10]: FUNC_TIME: 0.09301
+==== Statistics (in seconds) ====
+Mean: 0.0934685 Std: 0.00293557010647 Median: 0.0930155
+  (Min: 0.088117 Max: 0.097498)
+min(mean, median) = 0.0930155
+Done.
+
+This shows roughly a 6.5x speedup from the original time of about .6 seconds.
+
+
+Went through the functions again and found that I forgot to privatize the i in func5. This got the speed up to .073.
+This is roughly 8.5x speedup.
+
+
+Things to not do: Privitize variables that are shared or vice versa; use the wrong schedule scheme; forget to check for correctness;
+		  forget what you changed; overuse scheduling (especially dynamic)
+
+Things to do: Use accumulators, parallel for loops, privitize!!! - biggest speed up because it doesn't have to constantly synchronize
+	      Scheduling can help at times

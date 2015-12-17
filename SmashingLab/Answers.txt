@@ -1,0 +1,210 @@
+Connor Kenny	304437322
+CS 33
+Answers.txt		My explanations for the Smashing Lab
+
+Here is my config file for the numbers 5-7:
+
+max_age=1000#101010101010010101010101010101010101101001010101010110101001010101010110101010101010010101101010101010101010100101010101010
+1010101010110100101010101011010100101010101011010101010101001010110101010101010101010010101010101010101010101101001010101010110101001010
+1010101101010101010100101011010101010101010101001010101010101010101010110100101010101011010100101010101011010101010101001010110101010101
+0101010100101010101010101010101011010010101010101101010010101010101101010101010100101011010101010101010101001010101010101010101010110100
+1010101010110101001010101010110101010101010010101101010101010101010100101010101010101010101011010010101010101101010010101010101101010101
+0101001010110101010101010101010010101010101010101010101101001010101010110101001010101010110101010101010010101101010101010101010100101010
+1010101010101010110100101010101011010100101010101011010101010101001010110101010101010101010010101010101010101010101101001010101010110101
+00101010101011010101010101001010110101010101011
+
+(I put returns to take care of 200 column problem)
+
+I used this because it is long enough to trample over anything important in the program. 
+This causes all 3 versions to crash because it steps on a ton of important data and instructions.
+
+
+
+SP- This crashes because I made my config file long enough that it stepped on the canary. 
+This made the program detect stack smashing, which resulted in a SIGSEGV, Segmentation Fault.
+
+Here is the backtrace:
+
+0x0015bd16 in ?? () from /lib/libgcc_s.so.1
+(gdb) bt
+#0  0x0015bd16 in ?? () from /lib/libgcc_s.so.1
+#1  0x0015c3b2 in _Unwind_Backtrace () from /lib/libgcc_s.so.1
+#2  0x002b8865 in backtrace () from /lib/libc.so.6
+#3  0x0022974b in __libc_message () from /lib/libc.so.6
+#4  0x002bbdad in __fortify_fail () from /lib/libc.so.6
+#5  0x002bbd5a in __stack_chk_fail () from /lib/libc.so.6
+#6  0x0804b69f in read_config (filename=<optimized out>) at thttpd.c:1190
+#7  0x61667361 in ?? ()
+#8  0x73616673 in ?? ()
+#9  0x66736166 in ?? ()
+#10 0x61667361 in ?? ()
+#11 0x000a7364 in ?? ()
+#12 0xffffc228 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+
+After going through the assembly, here is are the lines that mess up and cause the crash.
+
+0x0804b603 <read_config+1283>:	8b 44 24 7c	mov    0x7c(%esp),%eax
+0x0804b607 <read_config+1287>:	65 33 05 14 00 00 00	xor    %gs:0x14,%eax
+=> 0x0804b60e <read_config+1294>:	0f 85 86 00 00 00	jne    0x804b69a <read_config+1434>
+
+This checks the canary and since it has been stepped on, it crashes! 
+The canary is at 0x7c(%esp), and since the xor doesn’t return true, it jumps to the call to the function that crashes the program due to my stack smashing.
+
+Specifically it calls:
+
+0x0804b69a <read_config+1434>:	e8 c9 e4 ff ff	call   0x8049b68 <__stack_chk_fail@plt>
+
+which is the stack check fail. This essentially causes the crash. 
+I did a buffer overflow and stepped on a canary which allowed the stack protection to kick in and crash the system before I could do any more harm.
+
+
+
+
+AS-This crashes because I made my config file so long that it stepped on some book keeping instructions. 
+AS is supposed to do a memory check each time memory is accessed. Here is what it printed out when it crashed:
+
+ASAN:SIGSEGV
+=================================================================
+==23239==ERROR: AddressSanitizer: SEGV on unknown address 0x31303130 (pc 0x31303130 sp 0xffa9ca10 bp 0x31303130 T0)
+    #0 0x3130312f (+0x930312f)
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV ??:0 ??
+==23239==ABORTING
+
+
+0x31303130 in ?? ()
+(gdb) bt
+#0  0x31303130 in ?? ()
+#1  0x00000000 in ?? ()
+
+0x31303130:	00 00	add    %al,(%eax)
+
+This instruction has been created by my garbage config file. It is an unknown address and the program realizes that. 
+Also, the %eax register has not yet been given a value so trying to add to it would also cause the program to crash. 
+Here is where it jumps to:
+
+0x00162a10 <__asan::ASAN_OnSIGSEGV(int, siginfo_t*, void*)+0> …
+
+This seems to be the SIGSEGV protocol for AS, so then it gives a SIGSEGV after several more assembly commands. 
+Basically, making the program try to access memory that hasn’t been allocated causes the program to crash.
+
+
+
+
+NO- This has no special checks.
+
+Program received signal SIGSEGV, Segmentation fault.
+0x30313031 in ?? ()
+
+0x30313031:	Cannot access memory at address 0x30313031
+
+
+Here is the instruction that crashed:
+
+0x0804b4ba <read_config+1274>:	c3	ret
+
+This crashed with a segmentation fault because my config file was so long that it stepped on the return address, which caused it to try to go to a garbage address. 
+Since this option does not have any checks, it crashed without any notice from the program like the other two versions (detected stack smashing and AddressSanitizer Error). 
+This buffer overflow attack was very simple by just putting an outrageous number of characters in the config file. 
+This broke because all of these hexadecimal values are not actually associated with allocated memory. 
+It is associated with garbage so when it tries to access the memory at these locations it crashes.
+
+
+
+
+8. Compare the three assembly-language files' implementations of the handle_read function. 
+Describe the techniques used by -fstack-protector-strong and -fsanitize=address to prevent buffer-overrun exploits in handle_read.
+
+The main purpose of the handle_read function is to manage the http connection. 
+If there is an error in the connection, it seems like handle_read is supposed to take care of it by ending the connection/crashing. 
+In the handle_read function, the assembly for SP and NO are essentially the same. 
+This means that within handle_read, SP does not actually do anything differently. 
+It does its protection by checking the canary elsewhere. 
+These two versions basically do a lot of checks to the server to make sure what the program is working on is the correct thing. 
+If it passes all these tests, it runs smoothly, if not, it sends out the appropriate error or crashes. 
+This function is in charge of the connection and does its job by checking for errors in the connection and if it does not find any, operates as expected for a server.
+
+The AS version is more complicated than the other two. 
+This version does checks as well, but does not only do the checks that the source code from thttpd.c does. 
+It applies many more checks because of the ‘-fsanitize=address’ option. 
+Also, many of its commands are done with extremely large constants while the other two versions are done with much smaller numbers, which could be in order to protect against an intrusion. 
+It calls the following sequence at the end of every segment of assembly, just after a conditional jump:
+
+“subl    $12, %esp
+ pushl   %edx
+ call    __asan_report_load4”
+
+which suggests that it does a check for this kind of error every time that it can.
+More generally, it performs a slight variation of the below segment of code repeatedly throughout the assembly file:
+
+“	movl    %eax, %edx
+        movl    %edx, %eax
+        shrl    $3, %eax
+        addl    $536870912, %eax
+        movzbl  (%eax), %ecx
+        testb   %cl, %cl
+        setne   %bl
+        movl    %edx, %eax
+        andl    $7, %eax
+        addl    $3, %eax
+        cmpb    %cl, %al
+        setge   %al
+        andl    %ebx, %eax
+        testb   %al, %al
+        je	.L454
+        subl    $12, %esp
+        pushl   %edx
+        call    __asan_report_load4”
+
+This is most likely a memory check to make sure that the addresses are valid. 
+It repeats this segment of code basically after every memory access/check that the other two versions do. 
+All of these extra checks make the assembly code considerably longer than the other two versions. 
+It is able to check for a problem/buffer overflow attack at every stage in its execution so that it can protect from bad memory accesses.
+
+
+-fstack-protector-strong: This option is supposed to detect stack smashing to prevent the exploits. 
+It has a canary that it checks and if the canary is stepped on by a buffer-overflow attack, it will crash. 
+Interestingly, it does not have any effect on the handle_read function. That means it must do its checks elsewhere.
+
+-fsanitize=address: This does a memory check each time memory is accessed. 
+If there is an invalid memory address, it will crash the program so that you can’t do a buffer-overflow attack. 
+It runs through each of the checks that the NO and SP options do, while also making memory checks after each step.
+
+
+
+
+9. Build an exploit for the bug in variant NO that relies on the attacker tricking the victim into invoking thttpd with a particular value for the -C option. 
+(Admittedly this is not much of an exploit, but we don't want you to have to put more easily exploitable HTTP servers on our network.) 
+Your exploit should cause the victim web server to remove the file target.txt in the working directory of the web server. 
+Or, if such an exploit is impossible, explain why not, and investigate simple ways to alter the compiler flags 
+(or, in the worst case, to insert plausible bugs into the source code) to make the exploit possible.
+
+
+In order to pull off this exploit, we have to be aware of two main obstacles. 
+The first obstacle is that the stack may not be executable and the second is that there is stack randomization. 
+Luckily we can assume that either the stack is executable or there is no randomization. 
+These two obstacles make it much more difficult for us to impliment this kind of attack. 
+Below is my basic strategy for writing and employing my exploit:
+
+I plan to find where the return address is for the thttpd-no program relative to the beginning so that I can replace the return address of read_config with it. 
+Then I will make a NOP sled and have my return address return somewhere in the NOP sled to then be executed. 
+After sliding down the NOP's it will arrive at the code for the unlink function that I have passed through the config file. 
+I will also have to pass the "target.txt" file to the unlink function in order for it to work.
+
+Final Answer: (I did not end up using a NOP sled like described above. 
+My return address goes to unlink and a pointer to "target.txt" is in the location where unlink would look for its argument.) I found the location of the unlink function first. 
+Then I figured out where the return was in terms of my config file. 
+Once I found out where that was, I put the address of unlink where the return address was so that it would jump to unlink. 
+I assumed that stack randomization was disabled (I ran it in GDB). 
+Next, I put a pointer to a string called "target.txt" that was null terminated. 
+I then put this address in the location where the unlink function would look for its argument. 
+This way it would look to unlink the file called "target.txt". 
+To convert the hexadecimal values to ASCII characters, I used the hex2raw program provided by Brandon Wu. 
+After doing all of this, it will delete the target.txt file when you run these commands (Must use linux server 02 on seasnet for it to work):
+
+$ gdb ./src/thttpd-no -p 12620
+(gdb) run -C exploit.txt
+
+where exploit.txt is my exploit config file and 12620 is my port number.

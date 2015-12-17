@@ -1,0 +1,54 @@
+Connor Kenny
+CS 33
+HW #2
+
+3.56
+
+A: 
+x is in %esi
+n is in %ebx
+result is in %edi
+mask is in %edx
+
+B: 
+Initial values :
+result : -1
+mask : 1
+
+C: Test condition - Check whether or not mask equals 0
+
+D: mask gets left shifted by n bits in line #10
+
+E: result gets the value that results from an XOR of x & mask
+
+F: 
+int loop(int x, int n) 
+{	int result = -1 	int mask; 	for (mask = 1; mask != 0; mask = mask << n ) { 
+		result ^= (mask & x);	} 	return result; 
+}
+
+
+3.59
+
+x %eax
+n %edx
+
+n -= 0x32
+cmp 0x5 and n
+
+jump if greater than 5 to line 16
+	add 10 to %eax
+jump to 
+
+
+
+
+
+int switch_prob(int x, int n)
+{
+	int result  = x;
+	switch (n) {
+
+	}
+	return result;
+}

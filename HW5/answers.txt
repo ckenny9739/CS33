@@ -1,0 +1,22 @@
+Connor Kenny 304437322
+CS33	HW 5
+answers.txt
+
+12.18) Using the progress graph in Figure 12.21, classify the following trajectories as either safe or unsafe.
+A. H2, L2, U2, H1, L1, S2, U1, S1, T1, T2 : Unsafe because of the L1 move
+
+
+B. H2, H1, L1, U1, S1, L2, T1, U2, S2, T2 : Safe, never goes in unsafe region
+
+
+C. H1, L1, H2, L2, U2, S2, U1, S1, T1, T2 : Unsafe because of the L2 move
+
+
+
+12.24)The functions in the Rio I/O package (Section 10.4) are thread-safe. Are they reentrant as well?
+
+Reentrant: Functions that “do not reference any shared data when they are called by multiple threads.” - Page 982
+
+“We always use the term reentrant to include both explicit and implicit reentrant functions.” - Page 982
+
+These functions would, by the books definition, be called reentrant. They are not “explicitly reentrant” because they pass pointers as arguments. This means that if a thread were to pass in pointers in a specific way, it could be non-reentrant. They are actually implicitly reentrant, which means that if the threads pass the pointer to non shared data, it will be completely safe. An example of the functions being non-reentrant is when you interleave calls to rio_readlineb/rio_readnb with rio_readn. This lets the functions have access to shared data, which by definition cannot be reentrant. Overall, The functions do not have access to any static, global or shared data when called by multiple threads (appropriately), so it must be reentrant. 

@@ -1,0 +1,31 @@
+Connor Kenny	304437322
+CS 33	HW 4
+
+2.88
+
+A. (float) x == (float) dx
+
+Always yields 1. Although converting to float could cause a rounding error, it would cause the same error to both x and dx. This would cause them to be equal.
+B. dx - dy == (double) (x-y)
+
+Doesn’t always yield 1. Fails when x = 0 and y = TMin due to the conversion.
+C. (dx+dy)+dz==dx+(dy+dz)
+
+Always yield 1. This is true because all the numbers are in the range of integers. When you add the 3 together, they can always be represented by doubles. This will make both sides equal to each other.
+D. (dx*dy)*dz==dx*(dy*dz)
+
+Doesn’t always yield 1. Fails when dx = TMax, dy = TMax-1, dz = TMax-2 due to overflow or rounding errors.
+E. dx/dx==dz/dz
+
+Doesn’t always yields 1. Fails when x = 0 and z = 1 due to dividing by 0.
+
+
+2.89
+
+
+float fpwr2(int x){    /* Result exponent and fraction */    unsigned exp, frac;    unsigned u;    if (x < -149 ) {	/* Too small. Return 0.0 */ 
+	exp = 0;	frac = 0;    } else if (x < -126) {
+	/* Denormalized result */	exp = 0;	frac = 1 << (149+x); 
+    } else if (x < 128) {        /* Normalized result. */	exp = x+127;	frac = 0; 
+    } else {        /* Too big.  Return +oo */	exp =  255;	frac =  0; 
+    }    /* Pack exp and frac into 32 bits */    u = exp << 23 | frac;    /* Return as float */    return u2f(u);}

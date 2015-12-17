@@ -1,0 +1,23 @@
+Connor Kenny
+CS 33
+Pexex Lab
+testovf.txt
+
+This function causes signed overflow, which is undefined behavior in the C standard. We cannot be sure what the Seasnet machine will do, unless we tell it by adding the -ftrapv or -fwrapv options.
+
+1) -O2:  
+	pushl   %ebp        xorl    %eax, %eax        movl    %esp, %ebp        popl    %ebp        ret
+
+This returns 0. In this case, gcc does not silently overflow to cause big + 1 to equal INT_MIN. It automatically makes the condition false and does not even evaluate the comparison. This is most likely the result of the undefined behavior decided upon by the Seasnet server because we did not specify how to handle signed overflow. It basically decides that signed overflow leads to NaN’s (or something similar), that always evaluates to false when put in a conditional.
+
+2) -O2 -ftrapv:
+
+	pushl   %ebp        movl    %esp, %ebp        subl    $8, %esp        movl    big, %eax        leave        leal    1(%eax), %edx        cmpl    %edx, %eax        setg    %al        movzbl  %al, %eax        ret
+
+This returns 1. Surprisingly, -ftrapv does not trap with this signed overflow. It instead does basically the same thing as -frwapv (described below) in a slightly different order. This one uses the “leave” instruction along with pushing the ebp register onto the stack before putting big into eax. This problem of not trapping is a bug in the -ftrapv option for gcc. It should trap and crash immediately, but it does not do what it is advertised to do. After searching on the internet, it seems that this has been a big problem for quite a while and has to do with libcalls not functioning correctly. In the end, this compilation returns 1, when it really should trap.
+
+3) -O2 -fwrapv:
+
+	movl    big, %eax        pushl   %ebp        movl    %esp, %ebp        popl    %ebp        leal    1(%eax), %edx        cmpl    %edx, %eax        setg    %al        movzbl  %al, %eax        ret
+
+This returns 1. It does so because it does what the -fwrapv option is supposed to do. It adds 1 to big, which results in INT_MIN (0111…1111+0000…0001 ==> 1000…0000). Then when you do the comparison, INT_MIN is less than INT_MAX so that the comparison comes out to be true, which returns 1 as it should. This basically does the same thing as -ftrapv in this case, but this is good because this is what -fwrapv is supposed to do.

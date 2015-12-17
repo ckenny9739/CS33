@@ -1,0 +1,51 @@
+Connor Kenny
+CS 33
+HW1
+
+2.66
+
+int leftmost_one(unsigned x) 
+{
+    x |= (x >> 16);
+    x |= (x >> 8);
+    x |= (x >> 4);
+    x |= (x >> 2);
+    x |= (x >> 1);
+    return (x >> 1) + 1;
+}
+
+2.71
+
+Although this code does return the correct bit pattern, since word is unsigned, when you & with 0xFF, it returns another unsigned integer. Then when the function returns this unsigned number (which is supposed to be signed by the design of the program), it returns the wrong decimal number if the word was negative. Instead of returning the correct negative value, it returns the corresponding, and incorrect, unsigned value.
+
+Solution:
+
+int xbyte(packed_t word, int bytenum)
+{
+    return (word << ((3 - bytenum) << 3)) >> 24;
+}
+
+2.72
+
+A. The sizeof operator returns size_t which is unsigned. When you do the subtraction of maxbytes and sizeof(val) you subtract an unsigned from a signed integer. The signed integer is casted to unsigned so that the answer’s return type is unsigned, which is always >= 0. If sizeof(val) > maxbytes, it would just wrap around and make a really large positive number. Since the maxbytes - sizeof(val) is always  >= 0, the condition is always true.
+
+B.	To fix this problem, just use signed subtraction:
+
+	void copy_int(int val, void *buf, int maxbytes) {	    if (maxbytes - (int)sizeof(val) >= 0)
+            	memcpy(buf, (void *) &val, sizeof(val));	}
+
+2.81
+A. (x<y) == (-x>-y)
+Not always 1: False because if x == INT_MIN, then it fails. -INT_MIN == INT_MIN so INT_MIN < 5 == INT_MIN > -5
+and since this is false, it yields 0.
+B. ((x+y)<<4) + y-x == 17*y+15*x
+Always 1: True because (x+y)16 + y - x == 17*y + 15*x  —> 17*y + 15*x == 17*y + 15*x, which evaluates to 0
+C. ~x+~y+1==~(x+y)
+Always 1: -1 - x + -1 - y + 1 == -1 - (x-y) —> -1 - x - y == -1 - x - y. This evaluates to true every time so 1.
+D. (ux-uy) == -(unsigned)(y-x)
+Not Always 1: False because y-x is signed and could be negative. When converting to unsigned, it could cast incorrectly.
+Consider x = -2, y = -5: ux == 1110 == 14, uy == 1010 == 10
+(14-10) == - (unsigned)(-5 - (-2))  —>  4 == -(unsigned)(-3) —> 4 == -13 which is false so 0
+side-note: -3 == 1101 == 13 for unsigned
+E. ((x>>2)<<2)<=x
+Always 1: True because shifting right by 2 bits, you decrease the number by 0 to 3 depending on the bit order. Then shifting to the left again would result in putting the more significant bits back in their place, which is always less than the original, unless you shifted past the sign bit, which we don’t in this case because we only go 2 in a 32 bit word.

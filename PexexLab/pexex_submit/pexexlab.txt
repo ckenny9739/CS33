@@ -1,0 +1,63 @@
+Connor Kenny 304437322
+CS 33	Pexex Lab
+
+This is my log for the Program Execution Explorer Lab:
+
+I ran the multiply command on emacs to make sure that it would work. It outputted -962 which is correct.
+
+I got on to gdb and played around with it to get a better understanding of how it works.
+
+Set up a logging file (for the first time).
+
+Could not figure out how to get the executable to run. Figured it out after some work.
+
+Went through different commands on gdb to see what they do and how they work.
+
+Got the disassembled code from the machine using “disassemble”
+
+Set logging to on so that logging file will actually hold the stuff I need.
+
+Tried commands like break, continue, finish, stepi, nexti, backtrace, info registers, info frame, and quit.
+
+Went to Piazza to read up on what everybody else was doing because I was genuinely lost.
+
+Started going through 1st trace by using the log. Went through the entire function and went back on to log to get the information.
+
+Put all the data in the correct format for the first trace. Filled in information according to log saved from the trace.
+
+Stuck on what the memory/registers hold… eventually got the hang of it
+
+Tried many times to get testovf.c to work. Finally got all 3 different assembly code versions and beginning to compare.
+
+It turns out that -ftrapv does not behave properly. After multiple internet searches, it is a common problem on gcc.
+
+For testovf.c		-O2: 0		-O2 -ftrapv: 1		-O2 -fwrapv: 1
+
+Did not check the memory locations that certain instructions adjusted… must restart from the beginning of trace 1 after just finishing (turns out only had to change a few lines)
+
+Went through much faster this time checking both “info reg” and “info frame” in between each call to “si”
+
+Best system: “set disassemble-next-line on” + “set logging file log.txt” + “set logging on” + “break Ftimes” + “run”	—> then just “si”+”info reg” through each time
+
+Finished trace2 much faster than trace1 because I understood the patterns and how to read the assembly better.
+
+Trace3 was very similar to Trace1 because all that changed was the arguments. This allowed me to finish it much faster than the first two. A lot of it had the same addresses and instructions, just that the register values changed.
+
+Trace3 returns 1 which is incorrect… must figure out why…
+
+Is it because the numbers are too big and the system doesn’t know how to handle it?
+System does know how to handle it, but just not in the way I thought (used source code to find the answer).
+
+After finishing all the traces, I am starting the answers.txt part of the lab.
+
+The questions are pretty tricky and I have to look back into my traces and the source code of emacs - how do I do this? - (also go to piazza for support).
+
+Found a way to look at the source code for emacs, which makes these questions more reasonable.
+
+I answered all the questions and am now checking my answers and the traces.
+
+Formatting everything and proofreading my answers. Also making sure that lab log is correct.
+
+After finalizing all the answers, I am ready to turn in the lab.
+
+-End of log

